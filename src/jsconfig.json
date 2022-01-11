@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "removeComments": true,
+        "noImplicitAny": false,
+        "sourceMap": false,
+        "target": "ES2020",
+        "experimentalDecorators": true,
+        "lib": [
+            "DOM",
+            "ES2020",
+            "ES2020.String",
+            "ES2020.Promise"
+        ]
+    }
+}

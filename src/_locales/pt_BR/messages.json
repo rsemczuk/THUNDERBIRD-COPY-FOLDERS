@@ -1,0 +1,58 @@
+{
+    "extensionDescription": {
+        "message": "Copia os emails da conta para a pasta local"
+    },
+    "extensionName": {
+        "message": "Copiar emails para a pasta local"
+    },
+    "extensionShortName": {
+        "message": "Copiar emails"
+    },
+    "reloadTime": {
+        "message": "Realizar backup a cada "
+    },
+    "activeBackup": {
+        "message": "Ativar backup automático"
+    },
+    "minutes": {
+        "message": "minutos"
+    },
+    "milliseconds": {
+        "message": "milissegundos"
+    },
+    "loadNow": {
+        "message": "Realizar backup agora"
+    },
+    "load": {
+        "message": "Carregar"
+    },
+    "endBackupIn": {
+        "message": "Backup terminou em"
+    },
+    "startBackup": {
+        "message": "Backup começou"
+    },
+    "advancedSettings": {
+        "message": "Configurações avançadas"
+    },
+    "quickSettings": {
+        "message": "Configurações rápidas"
+    },
+    "copyTo": {
+        "message": "Copiar para"
+    },
+    "localFolder": {
+        "message": "Pastas Locais"
+    },
+    "doNotCopy": {
+        "message": "Não copiar"
+    },
+    "defaultFolder": {
+        "message": "Pasta padrão"
+    },
+    "advancedSettingsPageDescription": {
+        "message": "Editar configurações:"
+    }
+
+
+}

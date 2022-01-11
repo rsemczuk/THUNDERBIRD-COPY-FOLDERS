@@ -1,0 +1,15 @@
+.foldercontainer {
+  display: block;
+  padding: 5px 5px 5px 50px;
+}
+
+.folder {
+  cursor: pointer;
+}
+.folder:hover {
+  background: rgb(56, 87, 112);
+}
+
+.folder:before {
+  padding-right: 10px;
+}

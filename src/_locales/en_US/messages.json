@@ -1,0 +1,60 @@
+{
+    "extensionDescription": {
+        "message": "Copy emails to local folder"
+    },
+    "extensionName": {
+        "message": "Copy emails to local folder"
+    },
+    "extensionShortName": {
+        "message": "Copy emails"
+    },
+    "reloadTime": {
+        "message": "Backup every"
+    },
+    "activeBackup": {
+        "message": "Enable automatic backup"
+    },
+    "minutes": {
+        "message": "minutes"
+    },
+    "milliseconds": {
+        "message": "milliseconds"
+    },
+    "loadNow": {
+        "message": "Backup now"
+    },
+    "load": {
+        "message": "Load"
+    },
+    "endBackupIn": {
+        "message": "End backup in"
+    },
+    "startBackup": {
+        "message": "Start backup"
+    },
+    "advancedSettings": {
+        "message": "Advanced Settings"
+    },
+    "quickSettings": {
+        "message": "Quick Settings"
+    },
+    "copyTo": {
+        "message": "Copy to"
+    },
+    "localFolder": {
+        "message": "Local Folders"
+    },
+    "doNotCopy": {
+        "message": "Do not copy"
+    },
+    "defaultFolder": {
+        "message": "Default folder"
+    },
+    "advancedSettingsPageDescription": {
+        "message": "Edit Settings:"
+    }
+
+
+
+
+}

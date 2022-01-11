@@ -1,0 +1,44 @@
+{
+    "manifest_version": 2,
+    "name": "__MSG_extensionName__",
+    "short_name": "__MSG_extensionShortName__",
+    "description": "__MSG_extensionDescription__",
+    "version": "1.0.0",
+    "author": "RS",
+    "applications": {
+        "gecko": {
+            "id": "copyemailstolocalfolder@rs",
+            "strict_min_version": "78.0"
+        }
+    },
+    "icons": {
+        "16": "icons/AUTO_SEI_16.png",
+        "24": "icons/AUTO_SEI_24.png",
+        "32": "icons/AUTO_SEI_32.png",
+        "48": "icons/AUTO_SEI_48.png",
+        "64": "icons/AUTO_SEI_64.png",
+        "96": "icons/AUTO_SEI_96.png",
+        "128": "icons/AUTO_SEI_128.png",
+        "256": "icons/AUTO_SEI_256.png"
+    },
+    "background": {
+        "scripts": [
+            "background.js"
+        ]
+    },
+    "browser_action": {
+        "default_popup": "popup.html",
+        "default_title": "__MSG_extensionShortName__",
+        "default_icon": "icons/AUTO_SEI_32.png"
+    },
+    "permissions": [
+        "storage",
+        "messagesRead",
+        "messagesMove",
+        "accountsRead",
+        "accountsFolders",
+        "addressBooks",
+        "activeTab"
+    ],
+    "default_locale": "en_US"
+}

@@ -1,0 +1,24 @@
+{
+    "files.exclude": {
+        // "**/.git": true,
+        // "**/.svn": true,
+        // "**/.hg": true,
+        // "**/CVS": true,
+        // "**/.DS_Store": true,
+        // "**/node_modules": true,
+        // "**/dist": true,
+        // "**/backup": true,
+        // "**/backup__": true,
+        // "**/icons": true,
+        // "**/bin": true,
+        // "**/lib": true,
+        // "**.js": true,
+        // "**.md": true,
+        // "pack**.json": true,
+        // "**.es*": true,
+        // "tslint.json": true,
+        // // "tsconfig.json": true,
+        // "**/jsconfig.json": true
+    }
+    
+}
