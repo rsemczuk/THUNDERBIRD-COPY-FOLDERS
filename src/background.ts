@@ -4,7 +4,6 @@ interface FolderCopyTo {
     targetPath: string;
     targetEmail: string;
     copyFolder: boolean;
-    defaultTargetFolder: boolean;
     folderName: string;
 }
 
@@ -12,28 +11,40 @@ interface FolderCopyTo {
 interface AppCfg {
     activeBackup: boolean,
     reloadtime: number,
-    targetCopyFolders: FolderCopyTo[]
+    targetCopyFolders: FolderCopyTo[],
+    defaultTargetEmail: string;
+    defaultCopy: boolean;
+    suppressEmailDomain: boolean
 }
 
 
 class AppBackup {
-    listenersReceiveMsg: void;
     interval: any;
+    allAccounts: browser.accounts.MailAccount[];
+    localAccount: browser.accounts.MailAccount;
+    defaultAccount: browser.accounts.MailAccount;
+    externalAccounts: browser.accounts.MailAccount[];
+    allEmailFolders: browser.folders.MailFolder[];
+    allExternalEmailFolders: browser.folders.MailFolder[];
+    cfg: AppCfg;
 
 
     private async copyEmails(destinyFolder: browser.folders.MailFolder, originFolder: browser.folders.MailFolder) {
+        if (!destinyFolder || !originFolder) return;
         let destinyMsgs = await this.getAllMessagesFolder(destinyFolder);
         let originMsgs = await this.getAllMessagesFolder(originFolder);
-        for (let email of originMsgs)
+        // let listMsgId: number[] = []
+        for (let email of originMsgs) {
             if (!this.containEmail(email, destinyMsgs)) {
                 await browser.messages.copy([email.id], destinyFolder)
-                browser
+                // listMsgId.push(email.id);
             }
+        }
+        // if (listMsgId.length > 0) await browser.messages.copy(listMsgId, destinyFolder)
 
     }
-    private containEmail(email: browser.messages.MessageHeader, localMsgs: browser.messages.MessageHeader[]) {
-        for (let localEmail of localMsgs) {
-
+    private containEmail(email: browser.messages.MessageHeader, searchList: browser.messages.MessageHeader[]) {
+        for (let localEmail of searchList) {
             if (
                 localEmail.subject == email.subject &&
                 localEmail.date.getTime() == email.date.getTime() &&
@@ -47,6 +58,7 @@ class AppBackup {
         return false;
     }
     private async getAllMessagesFolder(folder: browser.folders.MailFolder) {
+        if (!folder) return null;
         let messages: browser.messages.MessageHeader[] = [];
         let page = await browser.messages.list(folder);
         messages = messages.concat(page.messages);
@@ -57,145 +69,163 @@ class AppBackup {
         return messages;
     }
 
-
-    async loadFolderCopyTo() {
-        return new Promise<void>(async (resolve, reject) => {
-            (await this.getAllEmailFolders()).forEach(async (f) => {
-
-
-                let ac = await this.getAccountById(f.accountId);
+    /**
+     * 
+     * @returns 
+     */
+    private loadFolderCopyTo() {
+        // criar config de todas as pastas;
+        let updateFolderCopyTo = () => {
+            this.allEmailFolders.forEach((f) => {
+                let ac = this.getAccountById(f.accountId);
                 let email = ac.identities[0] ? ac.identities[0].email : "";
-
                 let folderCopyTo = this.getFolderCopyTo(email, f.path);
-
                 if (!folderCopyTo) {
-                    await this.getDefaultFolderCopyTo(email, f.path, true);
-
+                    let defaultFolderModel = this.getDefaultFolderCopyTo(email, f.path);
+                    this.createFolderCopyTo(defaultFolderModel.email, defaultFolderModel.targetPath, defaultFolderModel.folderPath, defaultFolderModel.copyFolder, defaultFolderModel.folderName, defaultFolderModel.targetEmail);
                 }
-
-
-
-
-            })
-            //deletar folderCopyTo que não tenham pasta correspondente
-            for (let f of (await this.getCfg()).targetCopyFolders.concat()) {
-                let a = this.getEmailFolder(f.email, f.folderPath);
-                if (!a) {
-                    for (let ff of (await this.getCfg()).targetCopyFolders.concat()) {
-                        if (ff.targetEmail === f.folderPath && ff.targetEmail === f.email) {
-                            ff.copyFolder = false;
-                            ff.defaultTargetFolder = false;
-                            ff.targetEmail = "";
-                            ff.targetPath = "";
-                            this.deleteFolderCopyTo(ff);
-                        }
-                    }
-
-                    this.deleteFolderCopyTo(f);
-                }
-            }
-            resolve();
-        })
-    }
-
-    public async checkFolders() {
-        await this.loadFolderCopyTo();
-        let time = new Date().getTime();
-        let localAccount = await this.getLocalAccount();
-        let cfg = await this.getCfg();
-        let externalAccounts = await this.getExternalAccounts();
-        console.log(browser.i18n.getMessage("startBackup"));
-        if (localAccount.identities.length > 0) return;
-
-
-        if (externalAccounts.length > 0) {
-
-            for (let copyFolderTo of cfg.targetCopyFolders) {
-                if (copyFolderTo.copyFolder && copyFolderTo.email !== "") {
-                    let originFolder = await this.getEmailFolder(copyFolderTo.email, copyFolderTo.folderPath);
-                    let destinyFolder: browser.folders.MailFolder;
-                    if (copyFolderTo.defaultTargetFolder) {
-                        let defaultFolderCopyTo = await this.getDefaultFolderCopyTo(copyFolderTo.email, copyFolderTo.folderPath);
-                        destinyFolder = await this.getEmailFolder(defaultFolderCopyTo.targetEmail, defaultFolderCopyTo.targetPath);
-                        if (!destinyFolder) {
-                            let folders = Array.from(defaultFolderCopyTo.targetPath.split('/'));
-                            folders.shift();
-                            for (let folderName of folders) {
-                                let curFindFolder: browser.folders.MailFolder;
-                                if (!destinyFolder) {
-                                    destinyFolder = { path: '/', accountId: localAccount.id };
-                                    curFindFolder = await this.getEmailFolder("", destinyFolder.path + folderName);
-                                } else {
-                                    curFindFolder = await this.getEmailFolder("", destinyFolder.path + "/" + folderName);
-                                }
-
-                                if (!curFindFolder) {
-                                    destinyFolder = await browser.folders.create(destinyFolder, folderName);
-                                } else {
-                                    destinyFolder = curFindFolder;
-                                }
-                                await this.getEmailFolder(copyFolderTo.targetEmail, copyFolderTo.targetPath);
-                            }
-                        }
-                    } else {
-                        destinyFolder = await this.getEmailFolder(copyFolderTo.targetEmail, copyFolderTo.targetPath);
-                    }
-                    await this.copyEmails(destinyFolder, originFolder);
-                }
-
-
-            }
-
-            console.log(browser.i18n.getMessage("endBackupIn") + " " + (new Date().getTime() - time) + " " + browser.i18n.getMessage("milliseconds"));
+            });
         }
+        updateFolderCopyTo();
+
+        //deletar folderCopyTo que não tenham pasta correspondente
+        for (let f of this.cfg.targetCopyFolders.concat()) {
+            let a = this.getEmailFolder(f.email, f.folderPath);
+            if (!a) {
+                for (let ff of this.cfg.targetCopyFolders.concat()) {
+                    if (ff.targetEmail === f.folderPath && ff.targetEmail === f.email) {
+                        ff.copyFolder = false;
+                        ff.targetEmail = "";
+                        ff.targetPath = "";
+                        this.deleteFolderCopyTo(ff);
+                    }
+                }
+
+                this.deleteFolderCopyTo(f);
+            }
+        }
+        return this.saveCfg();
+
+    }
+    // resolver:: não deletar a configuração toda vez que adiciona uma conta de email
+    public async checkFolders() {
+        await this.loadParamters();
+        let time = new Date().getTime();
+
+        console.log(browser.i18n.getMessage("startBackup"));
+        if (this.localAccount.identities.length > 0) {
+            console.log('erro na captura da pasta local: necessário rever a configuração do app');
+            return;
+        };
+
+        for (let externalEmailFolder of this.allExternalEmailFolders) {
+            let curAcc = this.getAccountById(externalEmailFolder.accountId);
+            let copyFolderTo = this.getFolderCopyTo(curAcc.identities[0].email, externalEmailFolder.path);
+            if (!copyFolderTo.copyFolder) continue;
+            let originFolder = this.getEmailFolder(copyFolderTo.email, copyFolderTo.folderPath);
+            let destinyFolder: browser.folders.MailFolder;
+            let targetAcc = this.getAccountByEmail(copyFolderTo.targetEmail);
+            destinyFolder = this.getEmailFolder(copyFolderTo.targetEmail, copyFolderTo.targetPath);
+            if (!destinyFolder) {
+                let folders = Array.from(copyFolderTo.targetPath.split('/'));
+                folders.shift();
+                let previosDestinyFolder: browser.folders.MailFolder = { path: '/', accountId: targetAcc.id }
+                let curCreatePath = "";
+                for (let folderName of folders) {
+                    curCreatePath += "/" + folderName;
+                    let curDestinyFolder = this.getEmailFolder(copyFolderTo.targetEmail, curCreatePath);
+                    if (curDestinyFolder) {
+                        previosDestinyFolder = curDestinyFolder;
+                    } else {
+                        try {
+                            previosDestinyFolder = await browser.folders.create(previosDestinyFolder, folderName);
+                        } catch (error) {
+                            console.log(error)
+                        } finally {
+                            await this.loadParamters();
+                        }
+                    }
+                }
+            }
+            destinyFolder = this.getEmailFolder(copyFolderTo.targetEmail, copyFolderTo.targetPath);
+            this.copyEmails(destinyFolder, originFolder); //await
+        }
+
+        console.log(browser.i18n.getMessage("endBackupIn") + " " + (new Date().getTime() - time) + " " + browser.i18n.getMessage("milliseconds"));
+
 
     }
     constructor() {
-        this.start()
+        this.start();
     }
 
 
-    async getExternalAccounts() {
-        let externalAccounts = await this.getAllAccounts();
-        return externalAccounts.filter((email, i, arr) => {
+    async loadParamters() {
+        this.allAccounts = await browser.accounts.list();
+        this.externalAccounts = this.allAccounts.filter((email, i, arr) => {
             return email.identities[0] ? true : false;
-
         });
-    }
-
-    async getAllAccounts() {
-        return await browser.accounts.list();
-    }
-
-    async getLocalAccount() {
-        let externalAccounts = await this.getAllAccounts();
-        return externalAccounts.filter((email, i, arr) => {
+        this.localAccount = this.allAccounts.filter((email, i, arr) => {
             return email.identities[0] ? false : true;
         })[0];// assumir que a pasta local não possúi email
+
+
+
+        let emailFolders: browser.folders.MailFolder[] = [];
+        for (let acc of this.allAccounts) {
+            let loop = (folders: browser.folders.MailFolder[]) => {
+                for (let curFolder of folders || []) {
+                    emailFolders.push(curFolder);
+                    loop(curFolder.subFolders)
+                }
+
+            }
+            loop(acc.folders);
+
+        }
+        this.allEmailFolders = emailFolders;
+        let externalEmailFolders: browser.folders.MailFolder[] = [];
+        for (let acc of this.externalAccounts) {
+            let loop = (folders: browser.folders.MailFolder[]) => {
+                for (let curFolder of folders || []) {
+                    externalEmailFolders.push(curFolder);
+                    loop(curFolder.subFolders)
+                }
+            }
+            loop(acc.folders);
+        }
+        this.allExternalEmailFolders = externalEmailFolders;
+        //carregar this.cfg
+        await this.loadCfg();
+
+        this.defaultAccount = this.getAccountByEmail(this.cfg.defaultTargetEmail);
+
+        await this.loadFolderCopyTo();
+
     }
+
 
 
 
     private async start() {
         // await this.resetCfg();
-        await this.loadFolderCopyTo();
-        let cfg = await this.getCfg();
-
-        if (cfg.activeBackup) {
-            this.interval = setInterval(() => this.checkFolders(), 1000 * 60 * cfg.reloadtime);
-            browser.messages.onNewMailReceived.addListener(this.checkFolders);
+        await this.loadParamters();
+        if (this.cfg.activeBackup) {
+            this.interval = setInterval(() => this.checkFolders(), 1000 * 60 * this.cfg.reloadtime);
+            // browser.messages.onNewMailReceived.addListener(this.checkFolders);//reformular para não rodar tudo
             this.checkFolders();
         }
     }
     listenerMsg: (folder: browser.folders.MailFolder, messages: browser.messages.MessageList) => void;
-    async dataChanged(cfg: AppCfg) {
-        await this.saveCfg(cfg);
-        if (cfg.activeBackup) {
-            await this.checkFolders();
+
+
+    async dataChanged() {//cfg: AppCfg
+        await this.saveCfg();
+        if (this.cfg.activeBackup) {
             if (this.interval) {
                 clearInterval(this.interval);
             }
-            this.interval = setInterval(() => this.checkFolders(), 1000 * 60 * cfg.reloadtime);
+            this.interval = setInterval(() => this.checkFolders(), 1000 * 60 * this.cfg.reloadtime);
 
             if (this.listenerMsg) {
                 browser.messages.onNewMailReceived.removeListener(this.listenerMsg);
@@ -214,38 +244,50 @@ class AppBackup {
                 this.listenerMsg = null;
             }
         }
+        this.loadParamters();
     }
 
-    async saveCfg(cfg: AppCfg) {
-        return await new Promise<void>((resolve, reject) => {
-            chrome.storage.sync.set({
-                cfg: cfg
-            }, resolve);
+    saveCfg() {//cfg?: AppCfg
+        return new Promise<void>((resolve, reject) => {
+            chrome.storage.local.set({
+                cfg: this.cfg//cfg ? cfg : 
+            }, () => {
+                this.cfg = this.cfg;//cfg ? cfg : 
+                resolve();
+            });
         })
     }
 
-    async resetCfg() {
-        return await new Promise<void>((resolve, reject) => {
-            chrome.storage.sync.remove("cfg", resolve);
+    resetCfg() {
+        return new Promise<void>((resolve, reject) => {
+            chrome.storage.local.remove("cfg", async () => {
+                await this.loadParamters();
+                resolve();
+            });
         })
     }
 
-    private async getDefaultCfg(): Promise<AppCfg> {
+    private getDefaultCfg(): AppCfg {
         return {
             activeBackup: false,
-            reloadtime: 20,
-            targetCopyFolders: await this.generateDefaultTargeFolders(),
+            defaultTargetEmail: '',
+            reloadtime: 60,
+            targetCopyFolders: this.generateDefaultTargeFolders(),
+            defaultCopy: true,
+            suppressEmailDomain: false
         }
     }
 
-    async getCfg() {
-        return await new Promise<AppCfg>((resolve, reject) => {
-            chrome.storage.sync.get(async (itens: { cfg: AppCfg }) => {
-                let defaultCfg = await this.getDefaultCfg();
-                if (!itens || !itens.cfg) {
-                    await this.saveCfg(defaultCfg)
-                    resolve(<AppCfg>defaultCfg)
+    private loadCfg() {
+        return new Promise<void>((resolve, reject) => {
+            chrome.storage.local.get((itens: { cfg: AppCfg }) => {
+                let defaultCfg = this.getDefaultCfg();
+                if (!itens || !(itens.cfg)) {
+                    this.cfg = defaultCfg;
+                    this.saveCfg()
+                    resolve()
                 } else {
+                    this.cfg = itens.cfg;
                     let save = false;
                     if (typeof itens.cfg.activeBackup !== 'boolean') {
                         itens.cfg.activeBackup = defaultCfg.activeBackup;
@@ -255,12 +297,16 @@ class AppBackup {
                         itens.cfg.reloadtime = defaultCfg.reloadtime;
                         save = true;
                     }
+                    if (typeof itens.cfg.defaultTargetEmail !== 'string') {
+                        itens.cfg.defaultTargetEmail = defaultCfg.defaultTargetEmail;
+                        save = true;
+                    }
                     if (!Array.isArray(itens.cfg.targetCopyFolders) || itens.cfg.targetCopyFolders.length === 0) {
                         itens.cfg.targetCopyFolders = defaultCfg.targetCopyFolders;
                         save = true;
                     }
-                    if (save) await this.saveCfg(itens.cfg);
-                    resolve(<AppCfg>itens.cfg)
+                    if (save) this.saveCfg();
+                    resolve()
                 }
 
             });
@@ -268,35 +314,19 @@ class AppBackup {
     }
 
 
-    async getAllEmailFolders() {
-        let accs = await this.getAllAccounts();
-        let emailFolders: browser.folders.MailFolder[] = [];
-        for (let acc of accs) {
-            let loop = (folders: browser.folders.MailFolder[]) => {
-                for (let curFolder of folders || []) {
-                    emailFolders.push(curFolder);
-                    loop(curFolder.subFolders)
-                }
 
-            }
-            loop(acc.folders);
 
-        }
-        return emailFolders;
-    }
-
-    async getAccountById(id: string) {
-        let accs = await this.getAllAccounts();
-        for (let acc of accs) {
+    getAccountById(id: string) {
+        for (let acc of this.allAccounts) {
             if (acc.id === id) {
                 return acc;
             }
         }
         return null;
     }
-    async getAccountByEmail(email: string) {
-        let accs = await this.getAllAccounts();
-        for (let acc of accs) {
+
+    getAccountByEmail(email: string) {
+        for (let acc of this.allAccounts) {
             if (acc.identities[0] && acc.identities[0].email === email || !acc.identities[0] && email === "") {
                 return acc;
             }
@@ -304,9 +334,8 @@ class AppBackup {
         return null;
     }
 
-    async getEmailFolder(email: string, path: string) {
-        let accs = await this.getAllAccounts();
-        for (let copyFolderTo of accs) {
+    getEmailFolder(email: string, path: string) {
+        for (let copyFolderTo of this.allAccounts) {
             if (copyFolderTo.identities[0] && copyFolderTo.identities[0].email === email || email === "" && !copyFolderTo.identities[0]) {
                 let loop = (folders: browser.folders.MailFolder[]): browser.folders.MailFolder => {
                     for (let curFolder of folders) {
@@ -329,9 +358,8 @@ class AppBackup {
     }
 
 
-    async getFolderCopyTo(email: string, path: string) {
-        let cfg = await this.getCfg();
-        for (let copyFolderTo of cfg.targetCopyFolders) {
+    getFolderCopyTo(email: string, path: string) {
+        for (let copyFolderTo of this.cfg.targetCopyFolders) {
             if (copyFolderTo.folderPath === path && copyFolderTo.email === email) {
                 return copyFolderTo;
             }
@@ -339,40 +367,36 @@ class AppBackup {
         return null;
     }
 
-    async updateFolderCopyTo(folderCopyTo: FolderCopyTo) {
-        let cfg = await this.getCfg();
-        cfg.targetCopyFolders.forEach(async (copyFolderTo, index) => {
+    updateFolderCopyTo(folderCopyTo: FolderCopyTo) {
+        this.cfg.targetCopyFolders.forEach((copyFolderTo, index) => {
             if (copyFolderTo.folderPath === folderCopyTo.folderPath && copyFolderTo.email === folderCopyTo.email) {
-                cfg.targetCopyFolders[index] = folderCopyTo;
-                await this.saveCfg(cfg);
+                this.cfg.targetCopyFolders[index] = folderCopyTo;
+                return this.saveCfg();
             }
         });
     }
-    async deleteFolderCopyTo(folderCopyTo: FolderCopyTo) {
-        let cfg = await this.getCfg();
-        cfg.targetCopyFolders.forEach(async (copyFolderTo, index) => {
+    deleteFolderCopyTo(folderCopyTo: FolderCopyTo) {
+        this.cfg.targetCopyFolders.forEach((copyFolderTo, index) => {
             if (copyFolderTo.folderPath === folderCopyTo.folderPath && copyFolderTo.email === folderCopyTo.email) {
-                cfg.targetCopyFolders.splice(index, 1);
-                await this.saveCfg(cfg);
+                this.cfg.targetCopyFolders.splice(index, 1);
+                return this.saveCfg();
             }
         });
     }
 
-    async getOrCreateFolderCopyTo(email: string, targetPath: string, folderPath: string, copyFolder: boolean, folderName: string, targetEmail: string) {
-        let folderCopyTo = (await this.getFolderCopyTo(email, targetPath));
+    createFolderCopyTo(email: string, targetPath: string, folderPath: string, copyFolder: boolean, folderName: string, targetEmail: string) {
+        let folderCopyTo = this.getFolderCopyTo(email, targetPath);
         if (!folderCopyTo) {
-            let cfg = await this.getCfg();
             folderCopyTo = {
                 copyFolder: copyFolder,
                 email: email,
                 folderName: folderName,
                 targetPath: targetPath,
-                defaultTargetFolder: true,
                 folderPath: folderPath,
                 targetEmail: targetEmail
             };
-            cfg.targetCopyFolders.push(folderCopyTo);
-            await this.saveCfg(cfg);
+            this.cfg.targetCopyFolders.push(folderCopyTo);
+            this.saveCfg();
         }
         return folderCopyTo;
     }
@@ -380,46 +404,66 @@ class AppBackup {
 
 
 
-    async generateDefaultTargeFolders() {
+    generateDefaultTargeFolders() {
         let foldersCopyTo: FolderCopyTo[] = [];
-        (await browser.accounts.list()).forEach((acc) => {
+        this.allAccounts.forEach((acc) => {
             let email = acc.identities[0] ? acc.identities[0].email : '';
             let loop = (subFolders: browser.folders.MailFolder[], targetFolderPath: string) => {
                 subFolders.forEach((subFolder) => {
                     let curTargetFolderPath = targetFolderPath + "/" + subFolder.name
 
+                    let copyFolder = true;//default true
+                    let targetEmail = "";//default "";
+                    let targetPath = email === '' ? '' : curTargetFolderPath;
+                    if (this.cfg) {
+                        targetEmail = this.cfg.defaultTargetEmail
+                        copyFolder = this.cfg.defaultCopy;
+                        if (email === '') copyFolder = false;
+
+                        // if (!this.cfg.defaultCopy) {
+                        //     targetPath = "";
+                        // }
+
+
+                    }
+
                     foldersCopyTo.push({
-                        copyFolder: true,
+                        copyFolder: copyFolder,
                         email: email,
-                        targetPath: curTargetFolderPath,
+                        targetPath: targetPath,
                         folderName: subFolder.name,
-                        defaultTargetFolder: true,
                         folderPath: subFolder.path,
-                        targetEmail: ""
+                        targetEmail: targetEmail
                     })
                     if (subFolder.subFolders) {
                         loop(subFolder.subFolders, curTargetFolderPath);
                     }
                 });
             }
-            let path = '/' + email.replace(/@/g, '.');
+            let path = "";
+            if (email !== '' && this.cfg && this.cfg.suppressEmailDomain) {
+                path = '/' + email.split("@")[0];
+            } else if (email === '') {
+                path = '';
+            } else {
+                path = '/' + email.replace(/@/g, '.')
+            }
+
+
             loop(acc.folders, path);
         });
         return foldersCopyTo;
     }
 
-    async getDefaultFolderCopyTo(email: string, path: string, create?: boolean) {
-        for (let defaultFolderCopyTo of (await this.generateDefaultTargeFolders())) {
+    getDefaultFolderCopyTo(email: string, path: string) {
+        for (let defaultFolderCopyTo of (this.generateDefaultTargeFolders())) {
             if (defaultFolderCopyTo.email === email && defaultFolderCopyTo.folderPath === path) {
-                if (create) {
-                    await this.getOrCreateFolderCopyTo(defaultFolderCopyTo.email, defaultFolderCopyTo.targetPath, defaultFolderCopyTo.folderPath, defaultFolderCopyTo.copyFolder, defaultFolderCopyTo.folderName, defaultFolderCopyTo.targetEmail);
-                }
                 return defaultFolderCopyTo;
             }
-
         }
         return null;
     }
+
 
 
 

@@ -1,10 +1,12 @@
-Copiar mensagens do e-mail;
-destino padrão da cópia são as pastas locais;
-Nas configurações avançadas é possível alterar as opções de cópia individualmente, por pastas de email.
+Copia mensagens do e-mail para pastas definidas;
+Nas configurações avançadas é possível alterar as opções de cópia individualmente;
 Para acessar as configurações avançadas basta acessar a janela popup e em seguida clicar em opções avançadas;
+Notas:
+** A partir da versão 1.1.0 é possível copiar de um e-mail para outro;
 
 
-Copy email messages;
-default copy destination is local folders;
-In the advanced settings it is possible to change the copy options individually, by email folders.
-To access the advanced settings just access the popup window and then click on advanced options
+Copies e-mail messages to defined folders;
+In the advanced settings it is possible to change the copy options individually;
+To access the advanced settings just access the popup window and then click on advanced options;
+Notes:
+** From version 1.1.0 it is possible to copy from one email to another

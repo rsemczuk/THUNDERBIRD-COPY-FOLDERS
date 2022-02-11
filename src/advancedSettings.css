@@ -1,15 +1,64 @@
+.popup-page {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: bold;
+    padding: 10px;
+    background-color: white;
+}
+
+.input-group {
+    padding-top: 15px;
+}
+
+button,
+select,
+input {
+    /* padding-left: 10px; */
+    margin-left: 10px;
+}
+
 .foldercontainer {
-  display: block;
-  padding: 5px 5px 5px 50px;
+    display: block;
+    padding: 5px 5px 5px 50px;
 }
 
 .folder {
-  cursor: pointer;
-}
-.folder:hover {
-  background: rgb(56, 87, 112);
+    cursor: pointer;
+    display: flex;
+    flex-wrap: nowrap;
+    word-wrap: break-word;
 }
 
+
+/* .folder:hover {
+    background: rgb(56, 87, 112);
+} */
+
 .folder:before {
-  padding-right: 10px;
+    padding-right: 10px;
+}
+
+.inputselect {
+    position: relative;
+    display: flex;
+    flex-wrap: nowrap;
+    /* padding-left: 3pt; */
+}
+
+.inputselect select {
+    padding: 0;
+    height: 23px;
+}
+
+.inputselect input {
+    position: absolute;
+    width: calc(100% - 32px);
+    height: 19px;
+    left: 0px;
+    padding: 0px;
+}
+
+.inputselect button {
+    position: relative;
+    left: initial;
+    padding: 0px;
 }

@@ -5,16 +5,88 @@
     <meta charset="utf-8">
     <title data-locale="advancedSettings"></title>
     <link rel="stylesheet" type="text/css" media="screen" href="advancedSettings.css">
-    <link href="lib/font-awesome/css/font-awesome.min.css" rel="stylesheet" />
     <script src="advancedSettings.js" charset="utf-8"></script>
 </head>
 
 <body>
     <div class="container-page">
+
         <h2 data-locale="advancedSettingsPageDescription"></h2>
-        <div id="hierarchy">
-        </div>
+
+        <fieldset>
+            <legend data-locale="actions"></legend>
+
+            <div class="input-group">
+                <label for="loadNow" data-locale="loadNow"></label>
+                <button class="input" name="loadNow" id="loadNow" data-locale="go"></button>
+            </div>
+
+
+            <div class="input-group">
+                <label for="resetConfiguration" data-locale="resetConfiguration"></label>
+                <button class="input" name="resetConfiguration" id="resetConfiguration" data-locale="go"></button>
+            </div>
+
+
+            <div class="input-group" hidden="true">
+                <label for="downloadConfiguration" data-locale="downloadConfiguration"></label>
+                <button class="input" name="downloadConfiguration" id="downloadConfiguration" data-locale="go"></button>
+            </div>
+
+
+        </fieldset>
+
+
+
+        <fieldset>
+            <legend data-locale="defaultSettings"></legend>
+
+            <div class="input-group">
+                <label for="activeBackup" data-locale="activeBackup"></label>
+                <input type="checkbox" name="activeBackup" id="activeBackup">
+            </div>
+
+            <div class="input-group">
+                <label for="reloadtime" data-locale="reloadtime"></label>
+                <input class="input" type="number" name="reloadtime" id="reloadtime">
+                <label class="input" for="minutes" data-locale="minutes"></label>
+            </div>
+
+
+            <div class="input-group">
+                <label for="defaultDestination" data-locale="defaultDestination"></label>
+                <select class="input" name="defaultDestination" id="defaultDestination">
+                    <option value="" data-locale="localFolders"></option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <input type="checkbox" name="copy" id="copy">
+                <label for="copy" data-locale="copy"></label>
+            </div>
+
+            <div class="input-group">
+                <input type="checkbox" name="suppressEmailDomain" id="suppressEmailDomain">
+                <label for="suppressEmailDomain" data-locale="suppressEmailDomain"></label>
+            </div>
+
+
+
+            <div class="input-group">
+                <label for="overwriteAllSettings" data-locale="overwriteAllSettings"></label>
+                <button name="overwriteAllSettings" id="overwriteAllSettings" data-locale="load"></button>
+            </div>
+        </fieldset>
+
+
+        <fieldset>
+            <legend data-locale="folderSettings"></legend>
+            <div id="containerSettings">
+            </div>
+        </fieldset>
+
     </div>
+
 </body>
 
 </html>

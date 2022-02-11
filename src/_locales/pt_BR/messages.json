@@ -1,15 +1,15 @@
 {
     "extensionDescription": {
-        "message": "Copia os emails da conta para a pasta local"
+        "message": "Copia mensagens de e-mail para pastas definidas;\nNas configurações avançadas é possível alterar as opções de cópia individualmente.\nA partir da versão 1.1.0 é possível copiar de um e-mail para outro"
     },
     "extensionName": {
-        "message": "Copiar emails para a pasta local"
+        "message": "Copiar emails"
     },
     "extensionShortName": {
         "message": "Copiar emails"
     },
     "reloadTime": {
-        "message": "Realizar backup a cada "
+        "message": "Realizar backup a cada"
     },
     "activeBackup": {
         "message": "Ativar backup automático"
@@ -41,18 +41,73 @@
     "copyTo": {
         "message": "Copiar para"
     },
-    "localFolder": {
+    "localFolders": {
         "message": "Pastas Locais"
     },
     "doNotCopy": {
         "message": "Não copiar"
     },
+    "copy": {
+        "message": "Copiar"
+    },
     "defaultFolder": {
         "message": "Pasta padrão"
     },
+    "defaultPath": {
+        "message": "Caminho padrão"
+    },
     "advancedSettingsPageDescription": {
         "message": "Editar configurações:"
+    },
+    "resetConfiguration": {
+        "message": "Reiniciar a configuração"
+    },
+    "downloadConfiguration": {
+        "message": "Fazer download da configuração"
+    },
+    "go": {
+        "message": "Carregar"
+    },
+    "defaultDestination": {
+        "message": "Destino Padrão"
+    },
+    "save": {
+        "message": "salvar"
+    },
+    "configureAllFolders": {
+        "message": "Configurar todas pastas"
+    },
+    "overwriteAllSettings": {
+        "message": "Sobrescrever todas configurações"
+    },
+    "folderSettings": {
+        "message": "Configurações das pastas"
+    },
+    "defaultSettings": {
+        "message": "Configurações padrão"
+    },
+    "actions": {
+        "message": "Ações"
+    },
+    "suppressEmailDomain": {
+        "message": "Suprimir domínio do email no caminho padrão"
+    },
+    "markAllToCopy": {
+        "message": "Copiar"
+    },
+    "markAllNotToCopy": {
+        "message": "Não copiar"
+    },
+    "restoreDefault": {
+        "message": "Restaurar padrão"
+    },
+    "titleRestoreDefault": {
+        "message": "Modificar todas pastas deste email para a configuração padrão"
     }
+
+
+
+
 
 
 }

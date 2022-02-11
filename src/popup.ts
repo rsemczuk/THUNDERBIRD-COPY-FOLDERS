@@ -8,7 +8,7 @@ window.onload = async () => {
   let loadNow = <HTMLInputElement>document.getElementById("loadNow");
   let advancedSettings = <HTMLInputElement>document.getElementById("advancedSettings");
 
-  let cfg: AppCfg = await appBackup.getCfg();
+  let cfg: AppCfg = appBackup.cfg;
 
   reloadTimeInput.valueAsNumber = cfg.reloadtime;
   activeBackupInput.checked = cfg.activeBackup;
@@ -17,6 +17,7 @@ window.onload = async () => {
   loadNow.onclick = () => {
     appBackup.checkFolders();
   }
+  
   advancedSettings.onclick = () => {
     return new Promise<chrome.tabs.Tab>((resolve, reject) => {
       chrome.tabs.create({
@@ -29,7 +30,7 @@ window.onload = async () => {
     cfg.reloadtime = parseFloat(reloadTimeInput.value);
     cfg.activeBackup = activeBackupInput.checked;
     
-    appBackup.dataChanged(cfg);
+    appBackup.dataChanged();
   }
 
 
