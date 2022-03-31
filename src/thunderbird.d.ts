@@ -686,6 +686,7 @@ declare namespace browser.messages {
     toDate?: Date;
     toMe?: boolean;
     unread?: boolean;
+    headerMessageId?:string
   }): Promise<MessageList>;
 
   function update(messageId: number, newProperties: {

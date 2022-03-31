@@ -240,7 +240,6 @@ window.onload = async () => {
         btnRestoreToDefaultEmail.type = "button";
         btnRestoreToDefaultEmail.innerText = browser.i18n.getMessage("restoreDefault")
         btnRestoreToDefaultEmail.title = browser.i18n.getMessage("titleRestoreDefault")
-        console.log(btnRestoreToDefaultEmail);
         emailSpanTxt.append(btnRestoreToDefaultEmail);
         //marcar folders para copiar
         btnRestoreToDefaultEmail.onclick = async () => {

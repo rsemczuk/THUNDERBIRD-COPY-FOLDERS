@@ -29,20 +29,48 @@ class AppBackup {
     cfg: AppCfg;
 
 
-    private async copyEmails(destinyFolder: browser.folders.MailFolder, originFolder: browser.folders.MailFolder) {
+    private async copyEmails(destinyFolder: browser.folders.MailFolder, originFolder: browser.folders.MailFolder, originMsgs?: browser.messages.MessageHeader[]) {
         if (!destinyFolder || !originFolder) return;
-        let destinyMsgs = await this.getAllMessagesFolder(destinyFolder);
-        let originMsgs = await this.getAllMessagesFolder(originFolder);
+
+        // let destinyMsgs = await this.getAllMessagesFolder(destinyFolder);
+        if (!originMsgs) originMsgs = await this.getAllMessagesFolder(originFolder);
         // let listMsgId: number[] = []
-        for (let email of originMsgs) {
-            if (!this.containEmail(email, destinyMsgs)) {
-                await browser.messages.copy([email.id], destinyFolder)
-                // listMsgId.push(email.id);
+        if (originMsgs)// && destinyMsgs
+            for (let email of originMsgs) {
+                if (!await this._containEmail(email, destinyFolder)) {
+                    await browser.messages.copy([email.id], destinyFolder)
+                    // listMsgId.push(email.id);
+                }
             }
-        }
         // if (listMsgId.length > 0) await browser.messages.copy(listMsgId, destinyFolder)
 
     }
+
+    private async _containEmail(email: browser.messages.MessageHeader, destinyFolder: browser.folders.MailFolder) {
+        let _fromDate = new Date(email.date.getTime() - 1000)
+        let _toDate = new Date(email.date.getTime() + 1000);
+        let findEmail: browser.messages.MessageList;
+        if (email.headerMessageId) {
+            findEmail = await browser.messages.query({
+                folder: destinyFolder,
+                subject: email.subject,
+                fromDate: _fromDate,
+                toDate: _toDate,
+                author: email.author,
+                headerMessageId: email.headerMessageId
+            });
+        } else {
+            findEmail = await browser.messages.query({
+                folder: destinyFolder,
+                subject: email.subject,
+                fromDate: _fromDate,
+                toDate: _toDate,
+                author: email.author
+            });
+        }
+        return findEmail && findEmail.messages && findEmail.messages.length > 0;
+    }
+
     private containEmail(email: browser.messages.MessageHeader, searchList: browser.messages.MessageHeader[]) {
         for (let localEmail of searchList) {
             if (
@@ -59,7 +87,16 @@ class AppBackup {
     }
     private async getAllMessagesFolder(folder: browser.folders.MailFolder) {
         if (!folder) return null;
+
+
         let messages: browser.messages.MessageHeader[] = [];
+        let _fromDate = new Date(1990, 0, 1);
+        let _toDate = new Date();
+        let findEmails = await browser.messages.query({
+            folder: folder,
+            // fromDate: _fromDate,
+            // toDate: _toDate
+        });
         let page = await browser.messages.list(folder);
         messages = messages.concat(page.messages);
         while (page.id) {
@@ -155,9 +192,7 @@ class AppBackup {
 
 
     }
-    constructor() {
-        this.start();
-    }
+
 
 
     async loadParamters() {
@@ -207,16 +242,36 @@ class AppBackup {
 
 
 
-    private async start() {
+    async start() {
         // await this.resetCfg();
         await this.loadParamters();
+        browser.messages.onNewMailReceived.addListener(this.listenerMsg);
         if (this.cfg.activeBackup) {
             this.interval = setInterval(() => this.checkFolders(), 1000 * 60 * this.cfg.reloadtime);
-            // browser.messages.onNewMailReceived.addListener(this.checkFolders);//reformular para não rodar tudo
-            this.checkFolders();
+            setTimeout(() => {
+                this.checkFolders();
+            }, 60000 * 3);
+
         }
     }
-    listenerMsg: (folder: browser.folders.MailFolder, messages: browser.messages.MessageList) => void;
+    private listenerMsg(folder: browser.folders.MailFolder, messages: browser.messages.MessageList) {
+        if (!this.cfg.activeBackup) return;
+        // console.log('listener');
+        // console.log(folder);
+        // console.log(messages);
+        // if (messages.messages.length === 0) return;
+        let curAcc = this.getAccountById(folder.accountId);
+        // console.log("asdf", curAcc);
+        if (!curAcc.identities[0]) return;
+        let copyFolderTo = this.getFolderCopyTo(curAcc.identities[0].email, folder.path);
+        // console.log(copyFolderTo);
+        if (copyFolderTo && !copyFolderTo.copyFolder) return;
+        let destinyFolder = this.getEmailFolder(copyFolderTo.targetEmail, copyFolderTo.targetPath);
+        // console.log(destinyFolder);
+        if (!destinyFolder) return;
+        this.copyEmails(destinyFolder, folder, messages.messages);
+
+    }
 
 
     async dataChanged() {//cfg: AppCfg
@@ -226,22 +281,10 @@ class AppBackup {
                 clearInterval(this.interval);
             }
             this.interval = setInterval(() => this.checkFolders(), 1000 * 60 * this.cfg.reloadtime);
-
-            if (this.listenerMsg) {
-                browser.messages.onNewMailReceived.removeListener(this.listenerMsg);
-            } else {
-                this.listenerMsg = (a, b) => { this.checkFolders(); }
-            }
-            browser.messages.onNewMailReceived.addListener(this.listenerMsg);
-
         } else {
             if (this.interval) {
                 clearInterval(this.interval);
                 this.interval = null;
-            }
-            if (this.listenerMsg) {
-                browser.messages.onNewMailReceived.removeListener(this.listenerMsg);
-                this.listenerMsg = null;
             }
         }
         this.loadParamters();
@@ -469,3 +512,7 @@ class AppBackup {
 
 }
 var appBackup = new AppBackup();
+window.addEventListener('load', (e) => {
+    appBackup.start();
+
+})
