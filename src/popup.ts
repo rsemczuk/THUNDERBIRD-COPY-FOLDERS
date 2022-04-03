@@ -8,7 +8,7 @@ window.onload = async () => {
   let loadNow = <HTMLInputElement>document.getElementById("loadNow");
   let advancedSettings = <HTMLInputElement>document.getElementById("advancedSettings");
 
-  let cfg: AppCfg = appBackup.cfg;
+  let cfg: AppCfg = await appBackup.getCfg();
 
   reloadTimeInput.valueAsNumber = cfg.reloadtime;
   activeBackupInput.checked = cfg.activeBackup;

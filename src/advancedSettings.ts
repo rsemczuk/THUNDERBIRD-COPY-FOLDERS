@@ -1,12 +1,12 @@
 window.onload = async () => {
     let appBackup = (<WindowApp>window.browser.extension.getBackgroundPage()).appBackup;
     await appBackup.loadParamters();
-    let cfg = appBackup.cfg;
+    let cfg = await appBackup.getCfg();
+    // console.log(appBackup.cfg === cfg)
     let externalAccounts = appBackup.externalAccounts;
     let allAccounts = appBackup.allAccounts;
     let localAccount = appBackup.localAccount;
     let defaultAccount = appBackup.defaultAccount;
-
 
     let modelFolder = document.createElement('span');
     modelFolder.className = 'foldercontainer';
@@ -42,11 +42,19 @@ window.onload = async () => {
     let inputReloadTime = <HTMLInputElement>document.getElementById("reloadtime");
     let inputActiveBackup = <HTMLInputElement>document.getElementById("activeBackup");
     let backupNow = <HTMLInputElement>document.getElementById("loadNow");
+    let fromDate = <HTMLInputElement>document.getElementById("fromDate");
+
+    fromDate.valueAsNumber = cfg.fromDate;
     inputReloadTime.valueAsNumber = cfg.reloadtime;
     inputActiveBackup.checked = cfg.activeBackup;
 
+    fromDate.onchange = () => {
+        cfg.fromDate = parseInt(fromDate.value);
+        appBackup.saveCfg();
+    }
+
     inputReloadTime.onchange = () => {
-        cfg.reloadtime = parseFloat(inputReloadTime.value);
+        cfg.reloadtime = parseInt(inputReloadTime.value);
         appBackup.saveCfg();
     }
 
@@ -56,8 +64,13 @@ window.onload = async () => {
     }
 
 
-    backupNow.onclick = () => {
-        appBackup.checkFolders();
+    backupNow.onclick = async () => {
+        let check = await appBackup.checkFolders();
+        if (check) {
+            if (confirm(check + '\n' + browser.i18n.getMessage("wantToInterrupt"))) {
+                appBackup.stopBackupRunning = true;
+            }
+        }
     }
 
 
@@ -109,7 +122,7 @@ window.onload = async () => {
     }
 
     downloadConfiguration.onclick = async (e) => {
-        let strCfg = JSON.stringify(appBackup.cfg, null, '  ');
+        let strCfg = JSON.stringify(await appBackup.getCfg(), null, '  ');
         download('cfg.json', strCfg, 'text/json')
 
     }
@@ -191,230 +204,266 @@ window.onload = async () => {
 
     let containerSettings = <HTMLDivElement>document.getElementById('containerSettings');
 
-    externalAccounts.forEach((acc) => {
+
+    let createEditor = (acc: browser.accounts.MailAccount, localFolder: boolean = false) => {
         let curAccFolder = <HTMLDivElement>modelFolder.cloneNode(true);
-        let _curAccEmail = acc.identities[0].email;
+        let _curAccEmail = "";
+        if (!localFolder) {
+            _curAccEmail = acc.identities[0].email;
+        }
+        curAccFolder.classList.add('emailSpan');
 
         let emailSpanTxt = (<HTMLSpanElement>curAccFolder.querySelector('#spanTxt'))
-        emailSpanTxt.innerText = _curAccEmail;
+        emailSpanTxt.innerText = localFolder ? browser.i18n.getMessage("localFolders") : _curAccEmail;
+        emailSpanTxt.classList.add('emailText');
 
-        let btnCopyEmail = document.createElement('button');
-        btnCopyEmail.className = "input";
-        btnCopyEmail.type = "button";
-        btnCopyEmail.innerText = browser.i18n.getMessage("markAllToCopy")
-        emailSpanTxt.append(btnCopyEmail);
-        //marcar folders para copiar
-        btnCopyEmail.onclick = async () => {
-            cfg.targetCopyFolders.forEach((f) => {
-                if (f.email === _curAccEmail) {
-                    f.copyFolder = true;
-                    if (f.targetPath === "") {
+
+
+        let externalEditors = () => {
+            let btnCopyEmail = document.createElement('button');
+            btnCopyEmail.className = "input";
+            btnCopyEmail.type = "button";
+            btnCopyEmail.innerText = browser.i18n.getMessage("markAllToCopy")
+            emailSpanTxt.append(btnCopyEmail);
+            //marcar folders para copiar
+            btnCopyEmail.onclick = async () => {
+                cfg.targetCopyFolders.forEach((f) => {
+                    if (f.email === _curAccEmail) {
+                        f.copyFolder = true;
+                        if (f.targetPath === "") {
+                            let defaultFolder = appBackup.getDefaultFolderCopyTo(_curAccEmail, f.folderPath);
+                            f.targetPath = defaultFolder.targetPath;
+                            f.targetEmail = defaultFolder.targetEmail;
+                        }
+
+                    }
+                });
+                await appBackup.saveCfg();
+                reloadPage();
+            }
+            let btnDoNotCopyEmail = document.createElement('button');
+            btnDoNotCopyEmail.className = "input"
+            btnDoNotCopyEmail.type = "button";
+            btnDoNotCopyEmail.innerText = browser.i18n.getMessage("markAllNotToCopy")
+            emailSpanTxt.append(btnDoNotCopyEmail);
+            btnDoNotCopyEmail.onclick = async () => {
+                cfg.targetCopyFolders.forEach((f) => {
+                    if (f.email === _curAccEmail) {
+                        f.copyFolder = false;
+                    }
+                });
+                await appBackup.saveCfg();
+                reloadPage();
+
+            }
+
+            let btnRestoreToDefaultEmail = document.createElement('button');
+            btnRestoreToDefaultEmail.className = "input";
+            btnRestoreToDefaultEmail.type = "button";
+            btnRestoreToDefaultEmail.innerText = browser.i18n.getMessage("restoreDefault")
+            btnRestoreToDefaultEmail.title = browser.i18n.getMessage("titleRestoreDefault")
+            emailSpanTxt.append(btnRestoreToDefaultEmail);
+            //marcar folders para copiar
+            btnRestoreToDefaultEmail.onclick = async () => {
+                cfg.targetCopyFolders.forEach((f) => {
+                    if (f.email === _curAccEmail) {
                         let defaultFolder = appBackup.getDefaultFolderCopyTo(_curAccEmail, f.folderPath);
+                        f.copyFolder = defaultFolder.copyFolder;
                         f.targetPath = defaultFolder.targetPath;
                         f.targetEmail = defaultFolder.targetEmail;
+
                     }
-
-                }
-            });
-            await appBackup.saveCfg();
-            reloadPage();
-        }
-        let btnDoNotCopyEmail = document.createElement('button');
-        btnDoNotCopyEmail.className = "input"
-        btnDoNotCopyEmail.type = "button";
-        btnDoNotCopyEmail.innerText = browser.i18n.getMessage("markAllNotToCopy")
-        emailSpanTxt.append(btnDoNotCopyEmail);
-        btnDoNotCopyEmail.onclick = async () => {
-            cfg.targetCopyFolders.forEach((f) => {
-                if (f.email === _curAccEmail) {
-                    f.copyFolder = false;
-                }
-            });
-            await appBackup.saveCfg();
-            reloadPage();
+                });
+                await appBackup.saveCfg();
+                reloadPage();
+            }
 
         }
 
-        let btnRestoreToDefaultEmail = document.createElement('button');
-        btnRestoreToDefaultEmail.className = "input";
-        btnRestoreToDefaultEmail.type = "button";
-        btnRestoreToDefaultEmail.innerText = browser.i18n.getMessage("restoreDefault")
-        btnRestoreToDefaultEmail.title = browser.i18n.getMessage("titleRestoreDefault")
-        emailSpanTxt.append(btnRestoreToDefaultEmail);
-        //marcar folders para copiar
-        btnRestoreToDefaultEmail.onclick = async () => {
-            cfg.targetCopyFolders.forEach((f) => {
-                if (f.email === _curAccEmail) {
-                    let defaultFolder = appBackup.getDefaultFolderCopyTo(_curAccEmail, f.folderPath);
-                    f.copyFolder = defaultFolder.copyFolder;
-                    f.targetPath = defaultFolder.targetPath;
-                    f.targetEmail = defaultFolder.targetEmail;
-
-                }
-            });
-            await appBackup.saveCfg();
-            reloadPage();
-        }
+        if (!localFolder) externalEditors()
 
         containerSettings.append(curAccFolder);
 
         let loop = (subFolders: browser.folders.MailFolder[], divFolder: HTMLDivElement, targetFolderPath: string) => {
             subFolders.forEach((subFolder) => {
+                if (subFolder.path.match(/^\/duplicate_emails/)) return;
                 let _curTargetFolderPath = targetFolderPath + "/" + subFolder.name
                 let _curDivFolder = <HTMLDivElement>modelFolder.cloneNode(true);
 
                 let _span = <HTMLSpanElement>_curDivFolder.querySelector('#spanTxt');
                 _span.innerText = subFolder.name;
                 _span.append(" ---> " + browser.i18n.getMessage('copyTo') + " : ");
-                let _btnSave = document.createElement('button');
-                _btnSave.className = "input";
-                _btnSave.id = 'btnSave'
-                _btnSave.innerText = browser.i18n.getMessage("save");
+
                 let _folderCopyTo = appBackup.getFolderCopyTo(_curAccEmail, subFolder.path);
 
                 let _defaultFolderCopyTo = appBackup.getDefaultFolderCopyTo(_folderCopyTo.email, _folderCopyTo.folderPath)
 
 
-                let _selectPath = <HTMLSelectElement>selectPathFolder.cloneNode(true);
-                let _optPathDoNotCopy = _selectPath.options.item(1);
-                let _optPathDefault = _selectPath.options.item(2);
+                let externalFolderCfg = () => {
 
-                // select account
-                let _selectAccount = <HTMLSelectElement>selectAccount.cloneNode(true);
+                    let _selectPath = <HTMLSelectElement>selectPathFolder.cloneNode(true);
+                    let _optPathDoNotCopy = _selectPath.options.item(1);
+                    let _optPathDefault = _selectPath.options.item(2);
 
-                /// valor path
-                let inputEditable = document.createElement('input');
-                inputEditable.type = "text";
+                    // select account
+                    let _selectAccount = <HTMLSelectElement>selectAccount.cloneNode(true);
 
-                // trocar o onchange por um botão
-                _btnSave.onclick = () => {
-                    let selectedOpt = _selectPath.selectedOptions[0];
-                    let update = false;
-                    switch (selectedOpt.id) {
-                        case 'doNotCopy':
-                            _folderCopyTo.copyFolder = false;
-                            update = true;
-                            break;
-                        default:
-                            _folderCopyTo.copyFolder = true;
-                            _folderCopyTo.targetPath = inputEditable.value;
-                            _folderCopyTo.targetEmail = _selectAccount.selectedOptions[0].value;
-                            update = true;
-                            break;
-                    }
-                    if (update) appBackup.updateFolderCopyTo(_folderCopyTo);
+                    /// valor path
+                    let inputEditable = document.createElement('input');
+                    inputEditable.type = "text";
 
-                }
 
-                for (let i = 0; i < _selectAccount.options.length; i++) {
-                    let op = _selectAccount.options[i];
-                    if (_folderCopyTo.targetEmail === op.value) {
-                        op.selected = true;
-                    } else if (_folderCopyTo.targetEmail === '' && op.value === '') {
-                        op.selected = true;
-                    } else {
-                        op.selected = false;
-                    }
-
-                }
-
-                /**
-                 * mostrar apenas as opções da conta target selecionada
-                 */
-                let hidenOtherPathsAccounts = () => {
-                    let selectedAccOpt = _selectAccount.selectedOptions[0];
-                    if (_selectPath.options.length > 3)
-                        for (let i = 3; i < _selectPath.options.length; i++) {
-                            let curOpt = _selectPath.options[i];
-                            curOpt.hidden = false;
-                            if (curOpt.dataset.accId === selectedAccOpt.id) {
-                                curOpt.hidden = false;
-                            } else {
-                                curOpt.hidden = true;
-                            }
-
+                    // trocar o onchange por um botão
+                    // let _btnSave = document.createElement('button');
+                    // _btnSave.className = "input";
+                    // _btnSave.id = 'btnSave'
+                    // _btnSave.innerText = browser.i18n.getMessage("save");                
+                    let save = () => {
+                        let selectedOpt = _selectPath.selectedOptions[0];
+                        let update = false;
+                        switch (selectedOpt.id) {
+                            case 'doNotCopy':
+                                _folderCopyTo.copyFolder = false;
+                                update = true;
+                                break;
+                            default:
+                                _folderCopyTo.copyFolder = true;
+                                _folderCopyTo.targetPath = inputEditable.value;
+                                _folderCopyTo.targetEmail = _selectAccount.selectedOptions[0].value;
+                                update = true;
+                                break;
                         }
-                }
+                        if (update) appBackup.updateFolderCopyTo(_folderCopyTo);
+                    }
 
-                _selectAccount.onchange = () => {
-                    // popular 
-                    hidenOtherPathsAccounts();
-                    _selectPath.options[0].selected = true;
-                }
-
-                // selecionar opt salvo e gerar nome
-                for (let targetCopyFolder of cfg.targetCopyFolders) {
-                    if (targetCopyFolder.folderPath === _folderCopyTo.folderPath && targetCopyFolder.email === _curAccEmail) {
-                        let emailPath = cfg.suppressEmailDomain ? _folderCopyTo.email.split("@")[0] : _folderCopyTo.email.replace(/@/g, '.');
-                        _optPathDefault.innerText += " --> /" + emailPath + _curTargetFolderPath;
-                        _optPathDefault.value = "/" + emailPath + _curTargetFolderPath;//friendNameFolder(_folderCopyTo)//_defaultFolderCopyTo.targetPath;
-                        if (!targetCopyFolder.copyFolder) {
-                            _optPathDoNotCopy.selected = true;
+                    for (let i = 0; i < _selectAccount.options.length; i++) {
+                        let op = _selectAccount.options[i];
+                        if (_folderCopyTo.targetEmail === op.value) {
+                            op.selected = true;
+                        } else if (_folderCopyTo.targetEmail === '' && op.value === '') {
+                            op.selected = true;
                         } else {
-                            let hasSelect = false;
+                            op.selected = false;
+                        }
+                    }
 
-                            for (let op of Array.from(_selectPath.options)) {
-                                let id = op.dataset.accId;
-                                let path = op.value;
-                                let _account = appBackup.getAccountByEmail(targetCopyFolder.targetEmail);
-                                if (path === targetCopyFolder.targetPath && id === _account.id) {
-                                    if (path === _defaultFolderCopyTo.targetPath && id === defaultAccount.id) {
-                                        _optPathDefault.selected = true;
+                    /**
+                     * mostrar apenas as opções da conta target selecionada
+                     */
+                    let hidenOtherPathsAccounts = () => {
+                        let selectedAccOpt = _selectAccount.selectedOptions[0];
+                        if (_selectPath.options.length > 3)
+                            for (let i = 3; i < _selectPath.options.length; i++) {
+                                let curOpt = _selectPath.options[i];
+                                curOpt.hidden = false;
+                                if (curOpt.dataset.accId === selectedAccOpt.id) {
+                                    curOpt.hidden = false;
+                                } else {
+                                    curOpt.hidden = true;
+                                }
 
-                                    } else {
-                                        op.selected = true;
+                            }
+                    }
 
+                    _selectAccount.onchange = () => {
+                        // popular 
+                        hidenOtherPathsAccounts();
+                        _selectPath.options[0].selected = true;
+                        save();
+                    }
+
+                    // selecionar opt salvo e gerar nome
+                    for (let targetCopyFolder of cfg.targetCopyFolders) {
+                        if (targetCopyFolder.folderPath === _folderCopyTo.folderPath && targetCopyFolder.email === _curAccEmail) {
+                            let emailPath = cfg.suppressEmailDomain ? _folderCopyTo.email.split("@")[0] : _folderCopyTo.email.replace(/@/g, '.');
+                            _optPathDefault.innerText += " --> /" + emailPath + _curTargetFolderPath;
+                            _optPathDefault.value = "/" + emailPath + _curTargetFolderPath;//friendNameFolder(_folderCopyTo)//_defaultFolderCopyTo.targetPath;
+                            if (!targetCopyFolder.copyFolder) {
+                                _optPathDoNotCopy.selected = true;
+                            } else {
+                                let hasSelect = false;
+
+                                for (let op of Array.from(_selectPath.options)) {
+                                    let id = op.dataset.accId;
+                                    let path = op.value;
+                                    let _account = appBackup.getAccountByEmail(targetCopyFolder.targetEmail);
+                                    if (path === targetCopyFolder.targetPath && id === _account.id) {
+                                        if (path === _defaultFolderCopyTo.targetPath && id === defaultAccount.id) {
+                                            _optPathDefault.selected = true;
+
+                                        } else {
+                                            op.selected = true;
+
+                                        }
                                     }
+                                }
+
+                                if (!hasSelect) {
+
                                 }
                             }
 
-                            if (!hasSelect) {
+                        }
+                    }
 
+                    hidenOtherPathsAccounts();
+
+
+
+                    if (!_folderCopyTo.copyFolder) {
+                        inputEditable.value = browser.i18n.getMessage('doNotCopy');
+                    } else {
+                        inputEditable.value = _folderCopyTo.targetPath;
+                    }
+
+                    inputEditable.onchange = () => {
+                        _selectPath.selectedIndex = 0;
+                        save();
+                    }
+                    inputEditable.oninput = () => {
+                        _selectPath.selectedIndex = 0;
+                        _selectPath.options[0].value = inputEditable.value;
+                        _selectPath.options[0].innerText = inputEditable.value;
+                    }
+
+                    _selectPath.onchange = () => {
+                        inputEditable.value = _selectPath.value;
+                        save();
+                    }
+
+
+                    let divSelect = document.createElement('span');
+                    divSelect.className = "inputselect";
+
+                    divSelect.append(_selectPath);
+                    divSelect.append(inputEditable);
+
+                    _span.append(_selectAccount);
+                    _span.append(divSelect);
+
+
+                }
+
+                if (!localFolder) externalFolderCfg();
+
+                let _removerDuplicadas = document.createElement('button');
+                _removerDuplicadas.className = "input";
+                _removerDuplicadas.innerText = browser.i18n.getMessage("removeDuplicates");
+                _removerDuplicadas.title = browser.i18n.getMessage("removeDuplicates");
+                // _removerDuplicadas.ariaLabel = 'removeDuplicates';
+                _removerDuplicadas.onclick = async () => {
+                    let path = _defaultFolderCopyTo.targetPath.replace(/^\//, '/duplicate_emails/');
+                    if (confirm(browser.i18n.getMessage("wantToDuplicate") + " " + browser.i18n.getMessage("localFolders") + path + '\n' + browser.i18n.getMessage("confirm") + '?')) {
+                        let check = await appBackup.moverDuplicadasParaPastaLocal(subFolder);
+                        if (check) {
+                            if (confirm(check + '\n' + browser.i18n.getMessage("wantToInterrupt"))) {
+                                appBackup.stopDuplicatesRunning = true;
                             }
                         }
-
                     }
+
                 }
-
-                hidenOtherPathsAccounts();
-
-
-
-
-
-
-
-
-                if (!_folderCopyTo.copyFolder) {
-                    inputEditable.value = browser.i18n.getMessage('doNotCopy');
-                } else {
-                    inputEditable.value = _folderCopyTo.targetPath;
-                }
-
-                inputEditable.onchange = () => {
-                    _selectPath.selectedIndex = 0;
-                }
-                inputEditable.oninput = () => {
-                    _selectPath.selectedIndex = 0;
-                    _selectPath.options[0].value = inputEditable.value;
-                    _selectPath.options[0].innerHTML = inputEditable.value
-                }
-
-                _selectPath.onchange = () => {
-                    inputEditable.value = _selectPath.value
-                }
-
-
-                let divSelect = document.createElement('span');
-                divSelect.className = "inputselect";
-
-                divSelect.append(_selectPath);
-                divSelect.append(inputEditable);
-
-                _span.append(_selectAccount);
-                _span.append(divSelect);
-
-                _span.append(_btnSave);
+                _span.append(_removerDuplicadas);
                 divFolder.append(_curDivFolder);
                 if (subFolder.subFolders) {
                     loop(subFolder.subFolders, _curDivFolder, _curTargetFolderPath);
@@ -422,7 +471,13 @@ window.onload = async () => {
             })
         }
         loop(acc.folders, curAccFolder, "");
-    });
+    }
+
+
+    externalAccounts.forEach((value: browser.accounts.MailAccount, index: number, array: browser.accounts.MailAccount[]) => createEditor(value));
+
+    createEditor(localAccount, true)
+
 
     let defaultDestination = <HTMLSelectElement>document.getElementById('defaultDestination');
     externalAccounts.forEach((a) => {
@@ -450,4 +505,5 @@ window.onload = async () => {
         elem.innerText = browser.i18n.getMessage(elem.dataset.locale);
     });
 }
+
 

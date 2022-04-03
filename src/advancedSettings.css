@@ -18,7 +18,7 @@ input {
 
 .foldercontainer {
     display: block;
-    padding: 5px 5px 5px 50px;
+    padding: 5px 5px 5px 20px;
 }
 
 .folder {
@@ -26,6 +26,17 @@ input {
     display: flex;
     flex-wrap: nowrap;
     word-wrap: break-word;
+}
+
+.emailSpan {
+    border-top: 1px solid black;
+}
+
+.emailText {
+    font-weight: bold;
+    font-style: italic;
+    font-size: medium;
+    color: black;
 }
 
 

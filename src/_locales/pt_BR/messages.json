@@ -93,21 +93,39 @@
         "message": "Suprimir domínio do email no caminho padrão"
     },
     "markAllToCopy": {
-        "message": "Copiar"
+        "message": "mudar para copiar todas pastas"
     },
     "markAllNotToCopy": {
-        "message": "Não copiar"
+        "message": "mudar para copiar nenhuma pasta"
     },
     "restoreDefault": {
-        "message": "Restaurar padrão"
+        "message": "carregar com novas configurações padrão"
     },
     "titleRestoreDefault": {
         "message": "Modificar todas pastas deste email para a configuração padrão"
+    },
+    "copyLast": {
+        "message": "Copiar últimos"
+    },
+    "days": {
+        "message": "dias"
+    },
+    "removeDuplicates": {
+        "message": "Mover emails duplicados"
+    },
+    "backupRunning": {
+        "message": "Um backup já está em execução"
+    },
+    "duplicatesRunning": {
+        "message": "Uma operação de mover emails duplicados já está em execução"
+    },
+    "wantToInterrupt": {
+        "message": "deseja interromper?"
+    },
+    "wantToDuplicate": {
+        "message": "Todos emails duplicados serão movidos (obs. uma cópia de cada email duplicado será deixado na pasta) para:"
+    },
+    "confirm": {
+        "message": "confirma"
     }
-
-
-
-
-
-
 }

@@ -56,7 +56,6 @@
     "defaultPath": {
         "message": "Default path"
     },
-
     "advancedSettingsPageDescription": {
         "message": "Edit Settings:"
     },
@@ -94,24 +93,41 @@
         "message": "Suppress email domain in default path"
     },
     "markAllToCopy": {
-        "message": "Copy"
+        "message": "switch to copy all folders"
     },
     "markAllNotToCopy": {
-        "message": "Do not copy"
+        "message": "switch to copy no folders"
     },
     "restoreDefault": {
-        "message": "Restore default"
+        "message": "load with new default settings"
     },
     "titleRestoreDefault": {
-        "message": "Modify all masses of this email to default setting"
+        "message": "Modify all folders of this email to default setting"
+    },
+    "copyLast": {
+        "message": "copy last"
+    },
+    "days": {
+        "message": "days"
+    },
+    "removeDuplicates": {
+        "message": "Move duplicate emails"
+    },
+    "backupRunning": {
+        "message": "A backup is already running"
+    },
+    "duplicatesRunning": {
+        "message": "An operation to remove duplicate emails is already running"
+    },
+    "wantToInterrupt": {
+        "message": "want to interrupt?"
+    },
+    "wantToDuplicate": {
+        "message": "All duplicate emails will be moved (note a copy of each duplicate email will be left in the folder) to:"
+    },
+    "confirm": {
+        "message": "confirm"
     }
 
-
-
-
-
-
-
-
-
+    
 }
